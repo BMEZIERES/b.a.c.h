@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>B.A.C.H</title>
 
-  <!-- StPageFlip -->
   <script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
 
   <style>
@@ -16,71 +15,57 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-bottom: 90px; /* espace pour la barre de boutons fixe */
+      padding-bottom: 90px;
     }
 
-    /* Contient le livre + zones clic, c'est lui qu'on zoome */
     #container {
       position: relative;
-      display: inline-block;
       margin-top: 20px;
       transform-origin: center top;
     }
 
-    /* Zone du livre (dimension "livre ouvert" = 2 pages) */
+    /* Le livre s’adapte à l’écran */
     #book {
-      width: 1200px;   /* 2 x 600 */
-      height: 800px;   /* 800 */
-      position: relative;
-      z-index: 1;
+      width: min(95vw, 1200px);
+      height: calc(min(95vw, 1200px) * 0.67);
     }
 
-    /* Zones clic gauche/droite au-dessus du livre */
-    .zone {
-      position: absolute;
-      top: 0;
-      width: 50%;
-      height: 100%;
-      z-index: 2;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
+    /* Zones clic UNIQUEMENT sur desktop */
+    @media (hover: hover) and (pointer: fine) {
+      .zone {
+        position: absolute;
+        top: 0;
+        width: 50%;
+        height: 100%;
+        z-index: 2;
+        cursor: pointer;
+      }
+      .left { left: 0; }
+      .right { right: 0; }
     }
-    .left  { left: 0; }
-    .right { right: 0; }
 
-    /* Barre de contrôles FIXE (jamais recouverte par le zoom) */
     .controls {
       position: fixed;
       bottom: 14px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 9999; /* au-dessus de tout */
+      z-index: 9999;
       display: flex;
       gap: 8px;
-      align-items: center;
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(6px);
+      background: rgba(255,255,255,0.9);
       padding: 10px 12px;
       border-radius: 14px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.18);
-      user-select: none;
     }
 
     button {
       padding: 10px 12px;
       font-size: 16px;
-      cursor: pointer;
       border: 0;
       border-radius: 10px;
-      background: #ffffff;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+      cursor: pointer;
+      background: white;
     }
-    button:active { transform: translateY(1px); }
-
-    /* Responsive simple : on réduit la taille visuelle du #book */
-    @media (max-width: 1250px) { #book { width: 900px; height: 600px; } }
-    @media (max-width: 950px)  { #book { width: 700px; height: 500px; } }
-    @media (max-width: 760px)  { #book { width: 600px; height: 450px; } }
   </style>
 </head>
 
@@ -89,124 +74,65 @@
   <div id="container">
     <div id="book"></div>
 
-    <!-- zones clic -->
-    <div class="zone left" onclick="prevPage()" aria-label="Page précédente"></div>
-    <div class="zone right" onclick="nextPage()" aria-label="Page suivante"></div>
+    <div class="zone left" onclick="prevPage()"></div>
+    <div class="zone right" onclick="nextPage()"></div>
   </div>
 
   <div class="controls">
     <button onclick="prevPage()">⬅️</button>
     <button onclick="nextPage()">➡️</button>
-    <button onclick="zoomIn()">🔍 +</button>
-    <button onclick="zoomOut()">🔍 -</button>
-    <button onclick="resetZoom()">↺ Reset</button>
-    <button onclick="toggleFullscreen()">⛶ Plein écran</button>
+    <button onclick="toggleFullscreen()">⛶</button>
   </div>
 
-  <script>
-    let pageFlip;
-    let zoom = 1;
+<script>
+  let pageFlip;
 
-    function getBookCssSize() {
-      const bookEl = document.getElementById("book");
-      return {
-        bookWidth: bookEl.offsetWidth,
-        bookHeight: bookEl.offsetHeight
-      };
+  const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+  window.onload = () => {
+    const bookEl = document.getElementById("book");
+    const width = bookEl.clientWidth;
+    const height = bookEl.clientHeight;
+
+    pageFlip = new St.PageFlip(bookEl, {
+      width: isMobile ? width : width / 2,
+      height: height,
+      size: "fixed",
+      showCover: true,
+      usePortrait: isMobile,   // ✅ 1 page sur mobile, 2 pages sur PC
+      mobileScrollSupport: true
+    });
+
+    pageFlip.loadFromImages([
+      "Bach16 -01.jpg",
+      "Bach16 -02.jpg",
+      "Bach16 -03.jpg",
+      "Bach16 -04.jpg",
+      "Bach16 -05.jpg",
+      "Bach16 -06.jpg",
+      "Bach16 -07.jpg",
+      "Bach16 -08.jpg",
+      "Bach16 -09.jpg",
+      "Bach16 -10.jpg",
+      "Bach16 -11.jpg",
+      "Bach16 -12.jpg",
+      "Bach16 -13.jpg",
+      "Bach16 -14.jpg",
+      "Bach16 -15.jpg"
+    ]);
+  };
+
+  function nextPage() { pageFlip?.flipNext(); }
+  function prevPage() { pageFlip?.flipPrev(); }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
     }
-
-    function applyZoom() {
-      // Zoom uniquement sur le livre (et zones clic), pas sur les boutons
-      document.getElementById("container").style.transform = `scale(${zoom})`;
-    }
-
-    window.onload = function () {
-      const bookEl = document.getElementById("book");
-      const { bookWidth, bookHeight } = getBookCssSize();
-
-      // IMPORTANT:
-      // StPageFlip attend width/height = taille d'UNE page.
-      // En double page, la largeur totale du livre = 2 * width.
-      pageFlip = new St.PageFlip(bookEl, {
-        width: Math.floor(bookWidth / 2),
-        height: Math.floor(bookHeight),
-        size: "fixed",
-        showCover: true,     // couverture seule puis doubles pages [2](https://nodlik.github.io/StPageFlip/docs/interfaces/flipsetting.html)
-        usePortrait: false,  // force le double page [1](https://www.youtube.com/watch?v=f3UIwEZx47w)[2](https://nodlik.github.io/StPageFlip/docs/interfaces/flipsetting.html)
-        autoSize: true
-      });
-
-      pageFlip.loadFromImages([
-        "Bach16 -01.jpg",
-        "Bach16 -02.jpg",
-        "Bach16 -03.jpg",
-        "Bach16 -04.jpg",
-        "Bach16 -05.jpg",
-        "Bach16 -06.jpg",
-        "Bach16 -07.jpg",
-        "Bach16 -08.jpg",
-        "Bach16 -09.jpg",
-        "Bach16 -10.jpg",
-        "Bach16 -11.jpg",
-        "Bach16 -12.jpg",
-        "Bach16 -13.jpg",
-        "Bach16 -14.jpg",
-        "Bach16 -15.jpg",
-        "Bach16 -16.jpg"
-
-      ]);
-
-      // Zoom molette (empêche le scroll de page)
-      document.addEventListener("wheel", function(e) {
-        e.preventDefault();
-        if (e.deltaY < 0) zoomIn();
-        else zoomOut();
-      }, { passive: false });
-
-      // Optionnel : reset zoom au resize pour éviter des décalages
-      window.addEventListener("resize", () => {
-        resetZoom();
-      });
-    };
-
-    function nextPage() {
-      if (pageFlip) pageFlip.flipNext();
-    }
-
-    function prevPage() {
-      if (pageFlip) pageFlip.flipPrev();
-    }
-
-    function zoomIn() {
-      zoom = Math.min(2.0, zoom + 0.1);
-      applyZoom();
-    }
-
-    function zoomOut() {
-      zoom = Math.max(0.5, zoom - 0.1);
-      applyZoom();
-    }
-
-    function resetZoom() {
-      zoom = 1;
-      applyZoom();
-    }
-
-    function toggleFullscreen() {
-      const elem = document.documentElement;
-      if (!document.fullscreenElement) {
-        elem.requestFullscreen();
-      } else {
-        document.exitFullscreen();
-      }
-    }
-  </script>
-
-  <!--
-    Note : transform (utilisé pour le zoom) crée un stacking context,
-    d'où l'usage de position:fixed + z-index élevé sur .controls
-    pour éviter qu'ils soient recouverts. [3](https://docs.cloud.google.com/storage/docs/hosting-static-website-http?hl=fr)[4](https://arhivo.com/fr/chapters/19075-how-to-host-your-websites-on-google-drive)
-  -->
+  }
+</script>
 
 </body>
 </html>
